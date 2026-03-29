@@ -1,0 +1,142 @@
+<!--
+waldo - image region of interest tracker
+Copyright (C) 2026 notweerdmonk
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in
+all copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.
+-->
+
+Waldo Installation
+==================
+
+Version: 1.1.0
+
+Preferred: PEP 517
+------------------
+
+Install runtime dependencies:
+
+    .venv/bin/pip install -r requirements.txt
+
+Install development/build tooling when you need to build from source:
+
+    .venv/bin/pip install -r requirements-dev.txt
+
+Build with PEP 517:
+
+    TMPDIR=/home/weerdmonk/Projects/waldo/tmp .venv/bin/python -m build --no-isolation
+
+Install the built wheel:
+
+    .venv/bin/pip install --no-deps dist/waldo-1.1.0-py3-none-any.whl
+
+Equivalent local helper:
+
+    ./scripts/install_local_pep517.sh
+
+Notes:
+
+- `pyproject.toml` is the primary packaging definition.
+- `pep517_backend.py` is the local PEP 517 backend shim used by the build step above.
+- Keep `pep517_backend.py` in source releases if you want users to have the same backend-side `EXDEV` workaround during `python -m build`.
+- In this environment, `pip install .` may fail even after a successful wheel build because pip's wheel cache can hit an `EXDEV` rename error.
+- The supported local workaround is to build first, through `pep517_backend.py`, then install the generated wheel directly.
+
+FFmpeg stdin pipeline usage
+---------------------------
+
+If no explicit input source is given and stdin is piped, `waldo` reads frames from stdin.
+
+Raw `bgr24` example:
+
+    ffmpeg -i /path/to/video.mp4 -f rawvideo -pix_fmt bgr24 pipe:1 | \
+    .venv/bin/waldo --stdin-format raw-bgr24 --stdin-size 1366x680 \
+    --template /path/to/template.png --output-csv tracks.csv
+
+PNG `image2pipe` example:
+
+    ffmpeg -i /path/to/video.mp4 -f image2pipe -vcodec png pipe:1 | \
+    .venv/bin/waldo --stdin-format png \
+    --template /path/to/template.png --output-csv tracks.csv
+
+JPEG `image2pipe` example:
+
+    ffmpeg -i /path/to/video.mp4 -f image2pipe -vcodec mjpeg pipe:1 | \
+    .venv/bin/waldo --stdin-format jpeg \
+    --template /path/to/template.png --output-csv tracks.csv
+
+For raw stdin streams, frame size must be provided through either:
+
+- `--stdin-size WIDTHxHEIGHT`
+- `WALDO_STDIN_SIZE=WIDTHxHEIGHT`
+
+If `--stdin-format` is omitted, `waldo` defaults to `auto` and detects PNG/JPEG streams from the incoming bytes; otherwise it falls back to raw `bgr24`.
+
+Fallback: setup.py Compatibility
+--------------------------------
+
+For older tooling that still relies on `setup.py`, install the build toolchain first:
+
+    .venv/bin/pip install -r requirements-dev.txt
+
+Compatibility checks:
+
+    .venv/bin/python setup.py --version
+
+Older setuptools-style install flow:
+
+    .venv/bin/python setup.py build
+
+The `setup.py` file is compatibility-only.
+Modern tooling should prefer the PEP 517 path above.
+
+Release Checklist
+-----------------
+
+Before publishing a release tarball or wheel:
+
+1. Verify package version:
+
+       .venv/bin/waldo --version
+       .venv/bin/python setup.py --version
+
+2. Build release artifacts:
+
+       TMPDIR=/home/weerdmonk/Projects/waldo/tmp .venv/bin/python -m build --no-isolation
+
+3. Inspect tarball contents:
+
+       tar -tzf dist/waldo-1.1.0.tar.gz
+
+4. Confirm only release-required files are included:
+
+   - `pyproject.toml`
+   - `setup.py`
+   - `MANIFEST.in`
+   - `INSTALL`
+   - `README.md`
+   - `pep517_backend.py`
+   - `waldo/*.py`
+
+5. Verify the local install fallback still works:
+
+       .venv/bin/pip install --no-deps --force-reinstall dist/waldo-1.1.0-py3-none-any.whl
+
+6. Re-check installed CLI:
+
+       .venv/bin/waldo --version
