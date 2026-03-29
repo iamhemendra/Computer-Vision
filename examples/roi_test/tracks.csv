@@ -1,0 +1,7 @@
+frame_index,frame_id,x,y,w,h,confidence,status
+0,frame_000.png,40,55,80,36,1.000000,tracked
+1,frame_001.png,52,59,80,36,0.918913,tracked
+2,frame_002.png,64,63,80,36,0.955075,tracked
+3,frame_003.png,76,67,80,36,0.961871,tracked
+4,frame_004.png,88,71,80,36,0.931463,tracked
+5,frame_005.png,100,75,80,36,0.971317,tracked
